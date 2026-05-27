@@ -2,9 +2,12 @@ const express = require("express");
 const mongoose = require("mongoose");
 require("dotenv").config();
 const applicationRoutes = require ("./routes/applications")
-const moduleRoutes = require("./routes/applications");
+const cors = require("cors")
 
 const app = express();
+app.use(cors({
+    origin: "https://job-tracker-frontend-nayan-choureys-projects.vercel.app"
+}));
 app.use(express.json());
 
 //connecting to mongoDB
