@@ -5,9 +5,7 @@ const applicationRoutes = require ("./routes/applications")
 const cors = require("cors")
 
 const app = express();
-app.use(cors({
-    origin: "https://job-tracker-frontend-nayan-choureys-projects.vercel.app"
-}));
+app.use(cors());
 app.use(express.json());
 
 //connecting to mongoDB
