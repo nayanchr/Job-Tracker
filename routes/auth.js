@@ -1,69 +1,77 @@
-const express =  require("express");
+const express = require("express");
 const router = express.Router();
 const bcrypt = require("bcryptjs");
 const User = require("../models/user");
 const jwt = require("jsonwebtoken");
-const auth = require("../middleware/auth")
+const auth = require("../middleware/auth");
 
+const specialCharRegex = /[!@#$%^&*(),.?"]/;
 
 //Registeration
 
 router.post("/register", async (req, res) => {
-    try {
-        const {name, email, password} = req.body;
-        const existingUser = await User.findOne({ email });
-        if(existingUser) {
-            return res.status(400).json({ message: "Email already exists" });
-        }
-        const hashedPassword = await bcrypt.hash(password, 10);
-
-        const user = new User({
-            name,
-            email,
-            password : hashedPassword 
+  try {
+    const { name, email, password } = req.body;
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return res.status(400).json({ message: "Email already exists" });
+    }
+    // For Special Characters
+    if (password.length < 8 || !specialCharRegex.test(password)) {
+      return res
+        .status(400)
+        .json({
+          message:
+            "Password must be 8+ characters and include a special character. !@#$%^&*(),.?",
         });
+    }
+    const hashedPassword = await bcrypt.hash(password, 10);
 
-        await user.save();
-        res.status(201).json({ message: "User created successfully" });
+    const user = new User({
+      name,
+      email,
+      password: hashedPassword,
+    });
 
-    } catch (err) {
-        res.status(500).json({ message: err.message });
-    };
+    await user.save();
+    res.status(201).json({ message: "User created successfully" });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
 });
 
 //login Route
 router.post("/login", async (req, res) => {
-    try {
-        const { email, password } = req.body;
-         const existingUser = await User.findOne({ email });
-        if(!existingUser) {
-            return res.status(400).json({ message: "Invalid Credentials" });
-        }
-        const isMatch = await bcrypt.compare(password, existingUser.password);
-        if (!isMatch) {
-            return res.status(400).json({ message: "Invalid Credentials" });
-        }
-        const token = jwt.sign(
-            { userId: existingUser._id },
-            process.env.JWT_SECRET,
-            { expiresIn: "7d" }
-        );
+  try {
+    const { email, password } = req.body;
+    const existingUser = await User.findOne({ email });
+    if (!existingUser) {
+      return res.status(400).json({ message: "Invalid Credentials" });
+    }
+    const isMatch = await bcrypt.compare(password, existingUser.password);
+    if (!isMatch) {
+      return res.status(400).json({ message: "Invalid Credentials" });
+    }
+    const token = jwt.sign(
+      { userId: existingUser._id },
+      process.env.JWT_SECRET,
+      { expiresIn: "7d" },
+    );
 
-            res.json({ message: "Login successful", token });
-
-    } catch (err) {
-        res.status(500).json({ message: err.message });
-    };
+    res.json({ message: "Login successful", token });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
 });
 
 // Protected route - GET profile
 router.get("/profile", auth, async (req, res) => {
-    try {
-        const user = await User.findById(req.userId).select("-password");
-        res.json(user);
-    } catch (err) {
-        res.status(500).json({ message: err.message });
-    }
+  try {
+    const user = await User.findById(req.userId).select("-password");
+    res.json(user);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
 });
 
 module.exports = router;
